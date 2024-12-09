@@ -7,6 +7,7 @@ from copy import deepcopy
 FIELD_WIDTH= 22
 FIELD_HEIGHT= 14
 # VERSION ITERATIVE |Lourd en calcul (Surtout en Python)
+# Avantage le Teammate (Balle s'arrète plus loin que la VERSION ITERATIVE)
 def compute_ball_dynamics_it(ball_init_pos, theta, ball_speed, cf, dt= 1/50):
     vx= ball_speed*math.cos(theta)
     vy= ball_speed*math.sin(theta)
@@ -201,13 +202,13 @@ def compute_possibles_pass_v(carrier_pos, tm_pos, ops_pos, pass_lines= 11, pass_
 
     return np.array(pass_pos)
 
-#VERSION AVEC CONNAISSANCE DES VITESSES DES TM ET OPS + CALCUL DE DYNAMIQUE DE BALLE
+#VERSION AVEC CONNAISSANCE DES VITESSES DES TM ET OPS + CALCUL DE DYNAMIQUE DE BALLE | VERSION ITERATIVE
 def is_pass_possible(carrier, tm_pos, ops_pos, tm_init_speed, tm_max_speed, ops_init_speed, ops_max_speed, pass_pos, ball_speed,
                         cf, dt):
     real_intercept= None
     theta= math.atan2(pass_pos[1] - carrier[1], pass_pos[0] - carrier[0])
     pass_dist= abs(distance(carrier, pass_pos))
-    ball_pos= _it(carrier, theta, ball_speed, cf, dt)
+    ball_pos= compute_ball_dynamics_it(carrier, theta, ball_speed, cf, dt)
     #Calcul des temps du Teammate / Ops / Ball
     #Teammate
     real_ball_dist = distance(ball_pos[0], ball_pos[-1])
