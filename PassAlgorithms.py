@@ -400,7 +400,7 @@ def compute_possibles_pass_v(carrier_pos, tm_pos, ops_pos, tm_init_speeds= None,
                                     stop_search[k]= True
                                 
 
-    return np.array(pass_pos), None
+    return np.array(pass_pos), None, None, None
 
 #VERSION AVEC CONNAISSANCE DES VITESSES DES TM ET OPS + CALCUL DE DYNAMIQUE DE BALLE | VERSION ITERATIVE
 def compute_possibles_pass_it(carrier_pos, tm_pos, ops_pos, tm_init_speed, tm_max_speed, ops_init_speed, ops_max_speed, pass_lines= 11, pass_step= 0.5, cf= 0.3, dt= 1/50):
@@ -498,7 +498,7 @@ def compute_possibles_pass_it(carrier_pos, tm_pos, ops_pos, tm_init_speed, tm_ma
                                     stop_search[k]= True
                                 
 
-    return np.array(pass_pos), None
+    return np.array(pass_pos), None, None, None
 
 #VERSION AVEC CONNAISSANCE DES VITESSES DES TM ET OPS + CALCUL DE DYNAMIQUE DE BALLE | VERSION ANALYTIQUE
 def compute_possibles_pass_a(carrier_pos, tm_pos, ops_pos, tm_init_speed, tm_max_speed, ops_init_speed, ops_max_speed, pass_lines= 11, pass_step= 0.5, cf= 0.3, dt= 1/50):
@@ -506,6 +506,8 @@ def compute_possibles_pass_a(carrier_pos, tm_pos, ops_pos, tm_init_speed, tm_max
         #1 -> Recherche des bornes des zones de passes les plus proches du Teammate
         #2 -> Recherche des bornes des zones de passes les plus éloignées du Teammate
     pass_pos= []
+    pass_no= []
+    pass_zone= []
     for i, tm in enumerate(tm_pos):
         theta_direct= math.atan2(tm[1] - carrier_pos[1], tm[0] - carrier_pos[0])
         theta_tm_direct = modulo_2Pi(theta_direct + math.pi)
@@ -551,6 +553,7 @@ def compute_possibles_pass_a(carrier_pos, tm_pos, ops_pos, tm_init_speed, tm_max
                                 #Si la position de passe est hors terrain OU que la position de passe est plus proche du Carrier que du Teammate | On stoppe la recherche. Pas de passes possibles pour cet angle, dans cette direction
                                 if (abs(bounds[k][0]) > FIELD_WIDTH/2 or abs(bounds[k][1]) > FIELD_HEIGHT/2) or (pass_possible == True and dist_carrier_bound < dist_tm_bound):
                                     stop_search[k]= True
+                                    pass_no.append(bounds[k].tolist())
                                 #Sinon, si passe possible | On a trouver la borne la plus proche du Teammate -> Passage à la phase 2, dans cette direction
                                 elif pass_possible == True:
                                     phases[k]= 2
@@ -559,6 +562,8 @@ def compute_possibles_pass_a(carrier_pos, tm_pos, ops_pos, tm_init_speed, tm_max
                                         pass_pos.append(real_intercept)
                                     elif bound not in pass_pos and distance(bounds[k], tm) < distance(bounds[k], carrier_pos):
                                         pass_pos.append(deepcopy(bound))  
+                                else:
+                                    pass_no.append(bounds[k].tolist())
                             #Positionner les limites de zones de passes les plus éloignées du Teammate
                             case 2:
                                 step= pass_step
@@ -582,6 +587,10 @@ def compute_possibles_pass_a(carrier_pos, tm_pos, ops_pos, tm_init_speed, tm_max
                                 if pass_possible == True and abs(new_bound[0]) < FIELD_WIDTH/2 and abs(new_bound[1]) < FIELD_HEIGHT/2 and dist_tm_bound < dist_carrier_bound:
                                     bounds[k]= new_bound  
                                     real_intercept_p2= real_intercept
+                                    if real_intercept_p2 is not None and (len(pass_zone) == 0 or real_intercept_p2 not in np.array(pass_zone)):
+                                        pass_zone.append(real_intercept_p2)
+                                    if (len(pass_zone) == 0 or new_bound not in np.array(pass_zone)):
+                                        pass_zone.append(new_bound)
                                 #Si on ne peut plus faire la passe au niveau de la nouvelle position
                                 #OU qu'on peut faire la passe ET que la dernière position stockée est dans les limites du terrain
                                 #       (ATTENTION: Comme le if précédent est FAUX, ça veut dire que la nouvelle position(new_bound) est hors terrain, mais que la dernière position stockée est valide pour une passe)
@@ -595,9 +604,11 @@ def compute_possibles_pass_a(carrier_pos, tm_pos, ops_pos, tm_init_speed, tm_max
                                         pass_pos.append(deepcopy(bound))
                                     real_intercept_p2= None
                                     stop_search[k]= True
+                                else:
+                                    pass_no.append(bounds[k].tolist())
                                 
 
-    return np.array(pass_pos), None
+    return np.array(pass_pos), None, np.array(pass_no), np.array(pass_zone)
 
 #VERSION ANALYTIQUE AVEC POSSIBILITE DE BLOCAGE DE L'ADVERSAIRE POUR AVOIR PLUS D'OPPORTUNITES DE PASSES
 def compute_possibles_pass_opti(carrier_pos, tm_pos, ops_pos, tm_init_speed, tm_max_speed, ops_init_speed, ops_max_speed, pass_lines= 11, pass_step= 0.5, cf= 0.3, dt= 1/50):
@@ -617,10 +628,10 @@ def compute_possibles_pass_opti(carrier_pos, tm_pos, ops_pos, tm_init_speed, tm_
         pass_possible, real_intercept, block_pos= is_pass_possible_opti(carrier_pos, tm, ops_pos, tm_init_speed[i], tm_max_speed[i], ops_init_speed, ops_max_speed, tm, ball_init_speed, cf= cf)
         if pass_possible == True:
                 n_phases= [2,2]
-                if real_intercept is not None and real_intercept not in pass_pos:
+                if real_intercept is not None and (len(pass_pos) == 0 or real_intercept not in np.array(pass_pos)):
                     
                     pass_pos.append(real_intercept)
-                elif tm not in pass_pos:
+                elif (len(pass_pos) == 0 or tm not in np.array(pass_pos)):
                     pass_pos.append(deepcopy(tm.tolist()))
                 if block_pos is not None:
                     if real_intercept is not None:
@@ -716,29 +727,70 @@ def compute_possibles_pass_opti(carrier_pos, tm_pos, ops_pos, tm_init_speed, tm_
                                     stop_search[k]= True
                                 
 
-    return np.array(pass_pos), np.array(block_path)
+    return np.array(pass_pos), np.array(block_path), None, None
 
+#Fonction de calcul de passes possibles par segmentation de l'espace de jeu | Permet de comparer et valider les zones de passes trouvées par les algorithmes
+def pass_zone_validator(ax, pass_verif_algorithm, field, carrier, tms, ops, title, segmentation_step= 0.5, cf= 0.3, tm_init_speeds= None, tm_max_speeds= None, ops_init_speeds= None, ops_max_speeds= None):
+    pass_ok= []
+    pass_no= []
+    p = Polygon(field, color= (0, 0.7, 0, 0.4))
+    ax.add_patch(p)
+    ax.set_xlim([-(FIELD_WIDTH/2) + 0.25,(FIELD_WIDTH/2) + 0.25])
+    ax.set_ylim([-(FIELD_HEIGHT/2) + 0.25, (FIELD_HEIGHT/2) + 0.25])
+    #Test de la possibilité de faire une passe pour chaque position de l'espace de jeu
+    for y in np.arange(-FIELD_HEIGHT/2, FIELD_HEIGHT/2, segmentation_step):
+        for x in np.arange(-FIELD_WIDTH/2, FIELD_WIDTH/2, segmentation_step):
+            for i, tm in enumerate(tms):
+                dist_pass= abs(distance([x, y], carrier))
+                ball_init_speed = linear_in_interval(dist_pass, 0, 10, 2.0, 8)
+                pass_possible,physic_stop_pos= pass_verif_algorithm(carrier, tm, ops, tm_init_speeds[i], tm_max_speeds[i], ops_init_speed, ops_max_speed, [x, y], ball_init_speed, cf= cf)
+                #On calcul la ditance entre le porteur de balle et la position de passe
+                carrier_pass_dist= distance([x, y], carrier)
+                tm_pass_dist= distance([x, y], tm)
+                if physic_stop_pos is not None:
+                    carrier_pass_dist= distance(physic_stop_pos, carrier)
+                    tm_pass_dist= distance(physic_stop_pos, tm)
+                #Si la passe est possible et que la position de passe est plus proche du Teammate que du Carrier (sinon la passe est inutile)
+                if pass_possible == True and (carrier_pass_dist > tm_pass_dist):
+                    pass_ok.append([x, y])
+                else:
+                    pass_no.append([x, y])
+    if len(pass_no) > 0:
+        pass_no= np.array(pass_no)
+        ax.scatter(pass_no[:,0], pass_no[:,1], color= "red",label= "Passes impossibles")
+    if len(pass_ok) > 0:
+        pass_ok= np.array(pass_ok)
+        ax.scatter(pass_ok[:,0], pass_ok[:,1], color= "blue", label= "Passes possibles")
+    ax.scatter([carrier[0]], [carrier[1]], marker='o', color= "black", label= "Carrier")
+    ax.scatter(tms[:,0], tms[:,1], marker= "o", color= "purple", label= "Teammates")
+    ax.scatter(ops[:,0], ops[:,1], marker= "o", color= "orange", label= "Opponents")
+    ax.legend()
+        
 #Fonction générique pour plotter les situations de jeu avec n'importe quel algorithme de calcul de passes possibles
 #A condition que la fonction prenne les mêmes arguments
 def plot_situation_problem(ax, pass_algorithm, field, carrier, tms, ops, title, tm_init_speeds= None, tm_max_speeds= None, ops_init_speeds= None, ops_max_speeds= None):
     p = Polygon(field, color= (0, 0.7, 0, 0.4))
     start= perf_counter()
-    pass_pos, block_path= pass_algorithm(carrier, tms, ops, tm_init_speeds, tm_max_speeds, ops_init_speeds, ops_max_speeds)
+    pass_pos, block_path, pass_no, zones_passes= pass_algorithm(carrier, tms, ops, tm_init_speeds, tm_max_speeds, ops_init_speeds, ops_max_speeds)
     elapse_time= perf_counter() - start
     ax.add_patch(p)
     ax.set_xlim([-(FIELD_WIDTH/2) + 0.25,(FIELD_WIDTH/2) + 0.25])
     ax.set_ylim([-(FIELD_HEIGHT/2) + 0.25, (FIELD_HEIGHT/2) + 0.25])
-    ax.scatter([carrier[0]], [carrier[1]], marker='o', color= "black", label= "Carrier")
-    ax.scatter(tms[:,0], tms[:,1], marker= "o", color= "purple", label= "Teammates")
-    ax.scatter(ops[:,0], ops[:,1], marker= "o", color= "red", label= "Opponents")
-    if pass_pos.shape[0] > 0:
-        ax.scatter(pass_pos[:,0], pass_pos[:,1], label= "Passes possibles")
     if block_path is not None:
         for i, path in (enumerate(block_path)):
             if i == 0:
                 ax.plot(path[:,0], path[:,1], color= "pink", linestyle= "--", label= "Block Path")
             else:
                 ax.plot(path[:,0], path[:,1], color= "pink", linestyle= "--")
+    if pass_no is not None and pass_no.shape[0] > 0:
+        ax.scatter(pass_no[:,0], pass_no[:,1], color= "red", label= "Passes impossibles")
+    if zones_passes is not None:
+        ax.scatter(zones_passes[:,0], zones_passes[:,1], color= "green", label= "Zones de passes")
+    if pass_pos.shape[0] > 0:
+        ax.scatter(pass_pos[:,0], pass_pos[:,1], label= "Passes possibles")
+    ax.scatter([carrier[0]], [carrier[1]], marker='o', color= "black", label= "Carrier")
+    ax.scatter(tms[:,0], tms[:,1], marker= "o", color= "purple", label= "Teammates")
+    ax.scatter(ops[:,0], ops[:,1], marker= "o", color= "orange", label= "Opponents")
     ax.legend()
     ax.set_title(title + "\n Temps d'exécution= " + str(elapse_time) + "s")
 
@@ -752,24 +804,26 @@ if __name__ == "__main__":
     carrier = np.array([0, -5], dtype= float)
     #Position du / des coéquipiers (pour en ajouter, ajoute des lignes de la forme [x, y] dans le tableau)
         #Exemple: tms= np.array([[0, 5], [5, 5]], dtype= float) pour 2 coéquipiers
-    tms= np.array([[1, 5]], dtype= float)
+    tms= np.array([[-3, 5]], dtype= float)
     #Position du / des adversaires (pour en ajouter, ajoute des lignes de la forme [x, y] dans le tableau)
         #Exemple: ops= np.array([[0, 0], [5, 0]], dtype= float) pour 2 adversaires
-    ops= np.array([[0, 5]], dtype= float)
+    ops= np.array([[0, -3], [-1, -3]], dtype= float)
     #ops= np.array([[-1, -3], [-3,-1], [0, -2]], dtype= float)
     
-    tms_init_speed= np.array([0], dtype= float)
+    tms_init_speed= np.array([0, 0], dtype= float)
     tms_max_speed= np.array([2.5])
-    ops_init_speed= np.array([1], dtype= float)
-    ops_max_speed= np.array([3.5], dtype= float)
+    ops_init_speed= np.array([1,1], dtype= float)
+    ops_max_speed= np.array([2.5,2.5], dtype= float)
 
     fig,ax = plt.subplots(2,1)
     """plot_situation_problem(ax[0], compute_possibles_pass_it, field, carrier, tms, ops, "Passes possibles avec vitesse courrante Teammate= " + str(tms_init_speed) + "m/s et vitesse courrante Opponent= " + str(ops_init_speed) + "m/s\n Vitesse maximale Teammates= " + str(tms_max_speed) + "m/s et vitesse maximale Opponents= " + str(ops_max_speed) + "m/s\n Version ITERATIVE",
                             tms_init_speed, tms_max_speed, ops_init_speed, ops_max_speed)"""
     plot_situation_problem(ax[0], compute_possibles_pass_a, field, carrier, tms, ops, "Passes possibles avec vitesse courrante Teammate= " + str(tms_init_speed) + "m/s et vitesse courrante Opponent= " + str(ops_init_speed) + "m/s\n Vitesse maximale Teammates= " + str(tms_max_speed) + "m/s et vitesse maximale Opponents= " + str(ops_max_speed) + "m/s\n Version ANALYTIQUE",
                             tms_init_speed, tms_max_speed, ops_init_speed, ops_max_speed)
-    plot_situation_problem(ax[1], compute_possibles_pass_opti, field, carrier, tms, ops, "VERSION ANALYTIQUE Avec positions de blocages de l'Adversaire\n vitesse courrante Teammate= " + str(tms_init_speed) + "m/s et vitesse courrante Opponent= " + str(ops_init_speed) + "m/s\n Vitesse maximale Teammates= " + str(tms_max_speed) + "m/s et vitesse maximale Opponents= " + str(ops_max_speed) + "m/s",
-                            tms_init_speed, tms_max_speed, ops_init_speed, ops_max_speed)
+    pass_zone_validator(ax[1], is_pass_possible_a, field, carrier, tms, ops, "Validation des zones de passes possibles\n vitesse courrante Teammate= " + str(tms_init_speed) + "m/s et vitesse courrante Opponent= " + str(ops_init_speed) + "m/s\n Vitesse maximale Teammates= " + str(tms_max_speed) + "m/s et vitesse maximale Opponents= " + str(ops_max_speed) + "m/s",
+                                0.5, 0.3, tms_init_speed, tms_max_speed, ops_init_speed, ops_max_speed)
+    """plot_situation_problem(ax[1], compute_possibles_pass_opti, field, carrier, tms, ops, "VERSION ANALYTIQUE Avec positions de blocages de l'Adversaire\n vitesse courrante Teammate= " + str(tms_init_speed) + "m/s et vitesse courrante Opponent= " + str(ops_init_speed) + "m/s\n Vitesse maximale Teammates= " + str(tms_max_speed) + "m/s et vitesse maximale Opponents= " + str(ops_max_speed) + "m/s",
+                            tms_init_speed, tms_max_speed, ops_init_speed, ops_max_speed)"""
     
     plt.subplots_adjust(left=0.125, bottom=0.1, right=0.9, top=0.9, wspace=0.2, hspace=0.55)
     plt.show()
