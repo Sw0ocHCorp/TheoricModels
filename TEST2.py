@@ -1,6 +1,8 @@
 import math
 from copy import deepcopy
 
+GRAVITY= 9.81
+
 def distance(pt1, pt2):
      if (pt1 is not None and pt2 is not None):
          return math.sqrt((pt2[0] - pt1[0])**2 + (pt2[1] - pt1[1])**2)
@@ -15,7 +17,7 @@ def compute_ball_dynamics(ball_init_pos, theta, ball_speed, cf= 0.3, dt= 1/50):
     while(abs(vx) > 0.05 or abs(vy) > 0.05):
         ball_pos[0] += vx*dt
         ball_pos[1] += vy*dt
-        ball_speed -= cf*9.8*dt
+        ball_speed -= cf*GRAVITY*dt
         vx= ball_speed*math.cos(theta)
         vy= ball_speed*math.sin(theta)
         pos_history.append(deepcopy(ball_pos))
@@ -72,6 +74,11 @@ def calculer_temps_distance(v0, theta, d, cf):
     else:
         raise ValueError("Aucune solution temporelle valide trouvée.")
 
+#Fonction pour calculer la vitesse initiale à laquelle on doit envoyer le ballon pour s'arrêter après une distance donnée
+def compute_ball_v0(dist, cf= 0.3):
+    deccel= cf*GRAVITY
+    return math.sqrt(2*deccel*dist)
+
 def calculer_temps_et_vitesse(position, acceleration, vitesse_initiale, vitesse_max):
     """
     Calcule le temps pour atteindre une position avec contrainte de vitesse maximale.
@@ -123,14 +130,16 @@ def distance(pt1, pt2):
          return math.inf
 
 # Exemple d'utilisation
-position = 10  # mètres
-acceleration = 10  # m/s²
-vitesse_initiale = 5  # m/s
-vitesse_max = 10  # m/s
-
-v0 = 50  # Vitesse initiale en m/s
-theta = math.radians(45)  # Angle initial en radians
 cf = 0.3  # Coefficient de frottement
+position = 10  # mètres
+acceleration = 0  # m/s²
+vitesse_initiale = 0  # m/s
+vitesse_max = 4.43  # m/s
+
+
+v0 = compute_ball_v0(position, cf)#4.43  # Vitesse initiale en m/s
+print(f"V0: {v0}")
+theta = math.radians(45)  # Angle initial en radians
 dt= 1/50
 pos_history= compute_ball_dynamics([0, 0], theta, v0, cf, dt)
 dist= distance(pos_history[0], pos_history[-1])
@@ -138,7 +147,7 @@ print(f"Distance parcourue : {dist:.2f} mètres en {len(pos_history)*dt} seconde
 temps = calculer_temps_distance(v0, theta, int(dist), cf)
 print(f"Temps pour parcourir {int(dist)} mètres : {temps:.2f} secondes")
 
-temps, vitesse = calculer_temps_et_vitesse(position, acceleration, vitesse_initiale, vitesse_max)
+"""temps, vitesse = calculer_temps_et_vitesse(position, acceleration, vitesse_initiale, vitesse_max)
 print(f"Temps total : {temps:.2f} secondes")
 print(f"Vitesse finale : {vitesse:.2f} m/s")
-print(compute_time_to_position([math.cos(math.pi/4), math.sin(math.pi/4)], 5, 10, [11*math.cos(math.pi/4), 11*math.sin(math.pi/4)]))
+print(compute_time_to_position([math.cos(math.pi/4), math.sin(math.pi/4)], 5, 10, [11*math.cos(math.pi/4), 11*math.sin(math.pi/4)]))"""

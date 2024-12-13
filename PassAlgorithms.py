@@ -4,9 +4,10 @@ from matplotlib.patches import Polygon
 import math
 from copy import deepcopy
 from time import perf_counter
-
+GRAVITY= 9.81
 FIELD_WIDTH= 22
 FIELD_HEIGHT= 14
+
 # VERSION ITERATIVE |Lourd en calcul (Surtout en Python)
 # Balle s'arrête plus loin que la VERSION ITERATIVE
 def compute_ball_dynamics_it(ball_init_pos, theta, ball_speed, cf, dt= 1/50):
@@ -68,6 +69,11 @@ def get_stop_ball(init_speed, start_pos, theta, cf):
     dist_to_stop= (init_speed**2) / (2*deccel)
     stop_pos= [start_pos[0] + dist_to_stop*math.cos(theta), start_pos[1] + dist_to_stop*math.sin(theta)]
     return time_to_stop, stop_pos
+
+#Fonction pour calculer la vitesse initiale à laquelle on doit envoyer le ballon pour s'arrêter après une distance donnée
+def compute_ball_v0(dist, cf= 0.3):
+    deccel= cf*GRAVITY
+    return math.sqrt(2*deccel*dist)
 
 def distance(pt1, pt2):
      if (pt1 is not None and pt2 is not None):
@@ -328,7 +334,7 @@ def compute_possibles_pass_v(carrier_pos, tm_pos, ops_pos, tm_init_speeds= None,
         theta_direct= math.atan2(tm[1] - carrier_pos[1], tm[0] - carrier_pos[0])
         theta_tm_direct = modulo_2Pi(theta_direct + math.pi)
         #dist_pass= abs(distance(tm, carrier_pos))
-        #ball_init_speed = linear_in_interval(dist_pass, 0, 10, 2.0, 8)
+        #ball_init_speed = compute_ball_v0(dist_pass)
         n_phases= [1, 1]
         #Si on peut faire une passe directe
         #Skip Phase 1 -> Recherche limite de zone de passe plus proche du Teammate
@@ -356,7 +362,7 @@ def compute_possibles_pass_v(carrier_pos, tm_pos, ops_pos, tm_init_speeds= None,
                                 bounds[k,0] += step*math.cos(math.radians(theta))
                                 bounds[k,1] += step*math.sin(math.radians(theta))
                                 dist_pass= abs(distance(bounds[k], carrier_pos))
-                                #ball_init_speed = linear_in_interval(dist_pass, 0, 10, 2.0, 8)
+                                #ball_init_speed = compute_ball_v0(dist_pass)
                                 pass_possible= is_pass_possible_v(carrier_pos, tm, ops_pos, bounds[k])
                                 dist_tm_bound= distance(tm, bounds[k])
                                 dist_carrier_bound= distance(carrier_pos, bounds[k])
@@ -380,7 +386,7 @@ def compute_possibles_pass_v(carrier_pos, tm_pos, ops_pos, tm_init_speeds= None,
                                 new_bound[1] += step*math.sin(math.radians(theta))
                                     
                                 dist_pass= abs(distance(new_bound, carrier_pos))
-                                ball_init_speed = linear_in_interval(dist_pass, 0, 10, 2.0, 8)
+                                ball_init_speed = compute_ball_v0(dist_pass)
                                 pass_possible= is_pass_possible_v(carrier_pos, tm, ops_pos, new_bound)
                                 dist_tm_bound= distance(tm, new_bound)
                                 dist_carrier_bound= distance(carrier_pos, new_bound)
@@ -412,7 +418,7 @@ def compute_possibles_pass_it(carrier_pos, tm_pos, ops_pos, tm_init_speed, tm_ma
         theta_direct= math.atan2(tm[1] - carrier_pos[1], tm[0] - carrier_pos[0])
         theta_tm_direct = modulo_2Pi(theta_direct + math.pi)
         dist_pass= abs(distance(tm, carrier_pos))
-        ball_init_speed = linear_in_interval(dist_pass, 0, 10, 2.0, 8)
+        ball_init_speed = compute_ball_v0(dist_pass)
         n_phases= [1, 1]
         #Si on peut faire une passe directe
         #Skip Phase 1 -> Recherche limite de zone de passe plus proche du Teammate
@@ -443,7 +449,7 @@ def compute_possibles_pass_it(carrier_pos, tm_pos, ops_pos, tm_init_speed, tm_ma
                                 bounds[k,0] += step*math.cos(math.radians(theta))
                                 bounds[k,1] += step*math.sin(math.radians(theta))
                                 dist_pass= abs(distance(bounds[k], carrier_pos))
-                                ball_init_speed = linear_in_interval(dist_pass, 0, 10, 2.0, 8)
+                                ball_init_speed = compute_ball_v0(dist_pass)
                                 pass_possible, real_intercept= is_pass_possible_it(carrier_pos, tm, ops_pos, tm_init_speed[i], tm_max_speed[i], ops_init_speed, ops_max_speed, bounds[k], ball_init_speed, cf= cf, dt= dt)
                                 dist_tm_bound= distance(tm, bounds[k])
                                 dist_carrier_bound= distance(carrier_pos, bounds[k])
@@ -472,7 +478,7 @@ def compute_possibles_pass_it(carrier_pos, tm_pos, ops_pos, tm_init_speed, tm_ma
                                 new_bound[1] += step*math.sin(math.radians(theta))
                                     
                                 dist_pass= abs(distance(new_bound, carrier_pos))
-                                ball_init_speed = linear_in_interval(dist_pass, 0, 10, 2.0, 8)
+                                ball_init_speed = compute_ball_v0(dist_pass)
                                 pass_possible, real_intercept= is_pass_possible_it(carrier_pos, tm, ops_pos, tm_init_speed[i], tm_max_speed[i], ops_init_speed, ops_max_speed, new_bound, ball_init_speed, cf= cf, dt= dt)
                                 dist_tm_bound= distance(tm, new_bound)
                                 dist_carrier_bound= distance(carrier_pos, new_bound)
@@ -501,7 +507,7 @@ def compute_possibles_pass_it(carrier_pos, tm_pos, ops_pos, tm_init_speed, tm_ma
     return np.array(pass_pos), None, None, None
 
 #VERSION AVEC CONNAISSANCE DES VITESSES DES TM ET OPS + CALCUL DE DYNAMIQUE DE BALLE | VERSION ANALYTIQUE
-def compute_possibles_pass_a(carrier_pos, tm_pos, ops_pos, tm_init_speed, tm_max_speed, ops_init_speed, ops_max_speed, pass_lines= 11, pass_step= 0.5, cf= 0.3, dt= 1/50):
+def compute_possibles_pass_a(carrier_pos, tm_pos, ops_pos, tm_init_speed, tm_max_speed, ops_init_speed, ops_max_speed, pass_lines= 21, pass_step= 0.25, cf= 0.3, dt= 1/50):
     #ALGO EN 2 PHASES:
         #1 -> Recherche des bornes des zones de passes les plus proches du Teammate
         #2 -> Recherche des bornes des zones de passes les plus éloignées du Teammate
@@ -512,7 +518,7 @@ def compute_possibles_pass_a(carrier_pos, tm_pos, ops_pos, tm_init_speed, tm_max
         theta_direct= math.atan2(tm[1] - carrier_pos[1], tm[0] - carrier_pos[0])
         theta_tm_direct = modulo_2Pi(theta_direct + math.pi)
         dist_pass= abs(distance(tm, carrier_pos))
-        ball_init_speed = linear_in_interval(dist_pass, 0, 10, 2.0, 8)
+        ball_init_speed = compute_ball_v0(dist_pass)
         n_phases= [1, 1]
         #Si on peut faire une passe directe
         #Skip Phase 1 -> Recherche limite de zone de passe plus proche du Teammate
@@ -543,7 +549,7 @@ def compute_possibles_pass_a(carrier_pos, tm_pos, ops_pos, tm_init_speed, tm_max
                                 bounds[k,0] += step*math.cos(math.radians(theta))
                                 bounds[k,1] += step*math.sin(math.radians(theta))
                                 dist_pass= abs(distance(bounds[k], carrier_pos))
-                                ball_init_speed = linear_in_interval(dist_pass, 0, 10, 2.0, 8)
+                                ball_init_speed = compute_ball_v0(dist_pass)
                                 pass_possible, real_intercept= is_pass_possible_a(carrier_pos, tm, ops_pos, tm_init_speed[i], tm_max_speed[i], ops_init_speed, ops_max_speed, bounds[k], ball_init_speed, cf= cf)
                                 dist_tm_bound= distance(tm, bounds[k])
                                 dist_carrier_bound= distance(carrier_pos, bounds[k])
@@ -575,7 +581,7 @@ def compute_possibles_pass_a(carrier_pos, tm_pos, ops_pos, tm_init_speed, tm_max
                                 new_bound[1] += step*math.sin(math.radians(theta))
                                     
                                 dist_pass= abs(distance(new_bound, carrier_pos))
-                                ball_init_speed = linear_in_interval(dist_pass, 0, 10, 2.0, 8)
+                                ball_init_speed = compute_ball_v0(dist_pass)
                                 pass_possible, real_intercept= is_pass_possible_a(carrier_pos, tm, ops_pos, tm_init_speed[i], tm_max_speed[i], ops_init_speed, ops_max_speed, new_bound, ball_init_speed, cf= cf)
                                 dist_tm_bound= distance(tm, new_bound)
                                 dist_carrier_bound= distance(carrier_pos, new_bound)
@@ -611,7 +617,7 @@ def compute_possibles_pass_a(carrier_pos, tm_pos, ops_pos, tm_init_speed, tm_max
     return np.array(pass_pos), None, np.array(pass_no), np.array(pass_zone)
 
 #VERSION ANALYTIQUE AVEC POSSIBILITE DE BLOCAGE DE L'ADVERSAIRE POUR AVOIR PLUS D'OPPORTUNITES DE PASSES
-def compute_possibles_pass_opti(carrier_pos, tm_pos, ops_pos, tm_init_speed, tm_max_speed, ops_init_speed, ops_max_speed, pass_lines= 11, pass_step= 0.5, cf= 0.3, dt= 1/50):
+def compute_possibles_pass_block(carrier_pos, tm_pos, ops_pos, tm_init_speed, tm_max_speed, ops_init_speed, ops_max_speed, pass_lines= 51, pass_step= 0.2, cf= 0.3, dt= 1/50):
     #ALGO EN 2 PHASES:
         #1 -> Recherche des bornes des zones de passes les plus proches du Teammate
         #2 -> Recherche des bornes des zones de passes les plus éloignées du Teammate
@@ -621,7 +627,7 @@ def compute_possibles_pass_opti(carrier_pos, tm_pos, ops_pos, tm_init_speed, tm_
         theta_direct= math.atan2(tm[1] - carrier_pos[1], tm[0] - carrier_pos[0])
         theta_tm_direct = modulo_2Pi(theta_direct + math.pi)
         dist_pass= abs(distance(tm, carrier_pos))
-        ball_init_speed = linear_in_interval(dist_pass, 0, 10, 2.0, 8)
+        ball_init_speed = compute_ball_v0(dist_pass)
         n_phases= [1, 1]
         #Si on peut faire une passe directe
         #Skip Phase 1 -> Recherche limite de zone de passe plus proche du Teammate
@@ -659,7 +665,7 @@ def compute_possibles_pass_opti(carrier_pos, tm_pos, ops_pos, tm_init_speed, tm_
                                 bounds[k,0] += step*math.cos(math.radians(theta))
                                 bounds[k,1] += step*math.sin(math.radians(theta))
                                 dist_pass= abs(distance(bounds[k], carrier_pos))
-                                ball_init_speed = linear_in_interval(dist_pass, 0, 10, 2.0, 8)
+                                ball_init_speed = compute_ball_v0(dist_pass)
                                 pass_possible, real_intercept, block_pos= is_pass_possible_opti(carrier_pos, tm, ops_pos, tm_init_speed[i], tm_max_speed[i], ops_init_speed, ops_max_speed, bounds[k], ball_init_speed, cf= cf)
                                 dist_tm_bound= distance(tm, bounds[k])
                                 dist_carrier_bound= distance(carrier_pos, bounds[k])
@@ -693,7 +699,7 @@ def compute_possibles_pass_opti(carrier_pos, tm_pos, ops_pos, tm_init_speed, tm_
                                 new_bound[1] += step*math.sin(math.radians(theta))
                                     
                                 dist_pass= abs(distance(new_bound, carrier_pos))
-                                ball_init_speed = linear_in_interval(dist_pass, 0, 10, 2.0, 8)
+                                ball_init_speed = compute_ball_v0(dist_pass)
                                 pass_possible, real_intercept, block_pos= is_pass_possible_opti(carrier_pos, tm, ops_pos, tm_init_speed[i], tm_max_speed[i], ops_init_speed, ops_max_speed, new_bound, ball_init_speed, cf= cf)
                                 dist_tm_bound= distance(tm, new_bound)
                                 dist_carrier_bound= distance(carrier_pos, new_bound)
@@ -729,8 +735,130 @@ def compute_possibles_pass_opti(carrier_pos, tm_pos, ops_pos, tm_init_speed, tm_
 
     return np.array(pass_pos), np.array(block_path), None, None
 
+#VERSION ANALYTIQUE ROBUSTE AUX OCCULTATIONS (Zone de passe coupée par le cône d'occultation de l'adversaire)
+def compute_possibles_pass_occult(carrier_pos, tm_pos, ops_pos, tm_init_speed, tm_max_speed, ops_init_speed, ops_max_speed, pass_lines= 51, pass_step= 0.2, cf= 0.3, dt= 1/50):
+    #ALGO EN 2 PHASES:
+        #1 -> Recherche des bornes des zones de passes les plus proches du Teammate
+        #2 -> Recherche des bornes des zones de passes les plus éloignées du Teammate
+    pass_pos= []
+    pass_no= []
+    pass_zone= []
+    for i, tm in enumerate(tm_pos):
+        theta_direct= math.atan2(tm[1] - carrier_pos[1], tm[0] - carrier_pos[0])
+        theta_tm_direct = modulo_2Pi(theta_direct + math.pi)
+        dist_pass= abs(distance(tm, carrier_pos))
+        ball_init_speed = compute_ball_v0(dist_pass)
+        n_phases= [1, 1]
+        #Si on peut faire une passe directe
+        #Skip Phase 1 -> Recherche limite de zone de passe plus proche du Teammate
+        pass_possible, real_intercept= is_pass_possible_a(carrier_pos, tm, ops_pos, tm_init_speed[i], tm_max_speed[i], ops_init_speed, ops_max_speed, tm, ball_init_speed, cf= cf)
+        if pass_possible == True:
+                n_phases= [2,2]
+                if real_intercept is not None and real_intercept not in pass_pos:
+                    pass_pos.append(real_intercept)
+                elif tm not in pass_pos:
+                    pass_pos.append(deepcopy(tm.tolist()))
+        # --> PASSE EN MOUVEMENT <--
+        theta_tm= [math.degrees(modulo_2Pi(math.radians(theta))) for theta in range(int(math.degrees(theta_tm_direct - math.pi / 2)), int(math.degrees(theta_tm_direct + math.pi/2)), int(math.degrees(math.pi/pass_lines)))]
+        for theta in theta_tm:
+            phases= deepcopy(n_phases)
+            stop_search= [False, False]
+            bounds= np.array([deepcopy(tm), deepcopy(tm)])
+            real_intercept_p2= None
+            while stop_search.count(True) < 2:
+                for k in range(len(phases)):
+                    if stop_search[k] == False:
+                        match phases[k]:
+                            #Positionner les bornes des zones de passe les plus proches du Teammate (Notament quand passe directe impossible)
+                            case 1:
+                                step= pass_step
+                                if k == 1:
+                                    step= -pass_step
+                                #Eloignement des bornes par rapport à la position du Teammate
+                                bounds[k,0] += step*math.cos(math.radians(theta))
+                                bounds[k,1] += step*math.sin(math.radians(theta))
+                                dist_pass= abs(distance(bounds[k], carrier_pos))
+                                ball_init_speed = compute_ball_v0(dist_pass)
+                                pass_possible, real_intercept= is_pass_possible_a(carrier_pos, tm, ops_pos, tm_init_speed[i], tm_max_speed[i], ops_init_speed, ops_max_speed, bounds[k], ball_init_speed, cf= cf)
+                                dist_tm_bound= distance(tm, bounds[k])
+                                dist_carrier_bound= distance(carrier_pos, bounds[k])
+                                if real_intercept is not None:
+                                    dist_carrier_bound= distance(carrier_pos, real_intercept)
+                                    dist_tm_bound= distance(tm, real_intercept)
+                                #Si la position de passe est hors terrain OU que la position de passe est plus proche du Carrier que du Teammate | On stoppe la recherche. Pas de passes possibles pour cet angle, dans cette direction
+                                if (abs(bounds[k][0]) > FIELD_WIDTH/2 or abs(bounds[k][1]) > FIELD_HEIGHT/2) or (pass_possible == True and dist_carrier_bound < dist_tm_bound):
+                                    stop_search[k]= True
+                                    pass_no.append(bounds[k].tolist())
+                                #Sinon, si passe possible | On a trouver la borne la plus proche du Teammate -> Passage à la phase 2, dans cette direction
+                                elif pass_possible == True:
+                                    phases[k]= 2
+                                    bound= bounds[k].tolist()
+                                    if real_intercept is not None and real_intercept not in pass_pos:
+                                        pass_pos.append(real_intercept)
+                                    elif bound not in pass_pos and distance(bounds[k], tm) < distance(bounds[k], carrier_pos):
+                                        pass_pos.append(deepcopy(bound))  
+                                else:
+                                    pass_no.append(bounds[k].tolist())
+                            #Positionner les limites de zones de passes les plus éloignées du Teammate
+                            case 2:
+                                step= pass_step
+                                new_bound= deepcopy(bounds[k])
+                                if k == 1:
+                                    step= -pass_step
+                                #Eloignement des bornes par rapport à la position de la borne trouvée en phase 1 (Si passe direct possible, cette borne est la position du Teammate)
+                                new_bound[0] += step*math.cos(math.radians(theta))
+                                new_bound[1] += step*math.sin(math.radians(theta))
+                                    
+                                dist_pass= abs(distance(new_bound, carrier_pos))
+                                ball_init_speed = compute_ball_v0(dist_pass)
+                                pass_possible, real_intercept= is_pass_possible_a(carrier_pos, tm, ops_pos, tm_init_speed[i], tm_max_speed[i], ops_init_speed, ops_max_speed, new_bound, ball_init_speed, cf= cf)
+                                dist_tm_bound= distance(tm, new_bound)
+                                dist_carrier_bound= distance(carrier_pos, new_bound)
+                                if real_intercept is not None:
+                                    dist_carrier_bound= distance(carrier_pos, real_intercept)
+                                    dist_tm_bound= distance(tm, real_intercept)
+                                #Si on peut faire la passe ET que le nouveau point de passe (theorique) est dans les limites du terrain ET que le point de passe(Theorique ou reel) est plus proche du Teammate que du Carrier
+                                    #|On va stocker la nouvelle position de borne (position valide pour une passe)
+                                if pass_possible == True and abs(new_bound[0]) < FIELD_WIDTH/2 and abs(new_bound[1]) < FIELD_HEIGHT/2 and dist_tm_bound < dist_carrier_bound:
+                                    bounds[k]= new_bound  
+                                    real_intercept_p2= real_intercept
+                                    if real_intercept_p2 is not None and (len(pass_zone) == 0 or real_intercept_p2 not in np.array(pass_zone)):
+                                        pass_zone.append(real_intercept_p2)
+                                    if (len(pass_zone) == 0 or new_bound not in np.array(pass_zone)):
+                                        pass_zone.append(new_bound)
+                                #Si on ne peut plus faire la passe au niveau de la nouvelle position
+                                #OU qu'on peut faire la passe ET que la dernière position stockée est dans les limites du terrain
+                                #       (ATTENTION: Comme le if précédent est FAUX, ça veut dire que la nouvelle position(new_bound) est hors terrain, mais que la dernière position stockée est valide pour une passe)
+                                # | On va ajouter la dernière position stockée dans les passes possibles (borne de zone de passe la plus éloignée du Teammate)
+                                elif pass_possible == False or \
+                                    pass_possible == True and (abs(bounds[k][0]) < FIELD_WIDTH/2 and abs(bounds[k][1]) < FIELD_HEIGHT/2):
+                                    bound= bounds[k].tolist()
+                                    if real_intercept_p2 is not None and real_intercept_p2 not in pass_pos:
+                                        pass_pos.append(real_intercept_p2)
+                                    elif bound not in pass_pos:
+                                        pass_pos.append(deepcopy(bound))
+                                    real_intercept_p2= None
+                                    #Si la new_bound est dans le cône d'occultation de l'adversaire | On va retourner en phase 1 pour chercher la limite de la nouvelle zone de passe
+                                    #Pour le detecter, on rentre dans ce cône quand new_bound est plus proche de l'adversaire que bounds[k] (Dernière position de zone de passe valide)
+                                    closest_ops= None
+                                    ops_dist= math.inf
+                                    for ops in ops_pos:
+                                        dist= distance(ops, new_bound)
+                                        if dist < ops_dist:
+                                            ops_dist= dist
+                                            closest_ops= ops
+                                    if distance(new_bound, closest_ops) < distance(bounds[k], closest_ops):
+                                        phases[k]= 1
+                                    else:
+                                        stop_search[k]= True
+                                else:
+                                    pass_no.append(bounds[k].tolist())
+                                
+
+    return np.array(pass_pos), None, np.array(pass_no), np.array(pass_zone)
+
 #Fonction de calcul de passes possibles par segmentation de l'espace de jeu | Permet de comparer et valider les zones de passes trouvées par les algorithmes
-def pass_zone_validator(ax, pass_verif_algorithm, field, carrier, tms, ops, title, segmentation_step= 0.5, cf= 0.3, tm_init_speeds= None, tm_max_speeds= None, ops_init_speeds= None, ops_max_speeds= None):
+def pass_zone_validator(ax, pass_verif_algorithm, field, carrier, tms, ops, title, segmentation_step= 0.25, cf= 0.3, tm_init_speeds= None, tm_max_speeds= None, ops_init_speeds= None, ops_max_speeds= None):
     pass_ok= []
     pass_no= []
     p = Polygon(field, color= (0, 0.7, 0, 0.4))
@@ -742,7 +870,7 @@ def pass_zone_validator(ax, pass_verif_algorithm, field, carrier, tms, ops, titl
         for x in np.arange(-FIELD_WIDTH/2, FIELD_WIDTH/2, segmentation_step):
             for i, tm in enumerate(tms):
                 dist_pass= abs(distance([x, y], carrier))
-                ball_init_speed = linear_in_interval(dist_pass, 0, 10, 2.0, 8)
+                ball_init_speed = compute_ball_v0(dist_pass)
                 pass_possible,physic_stop_pos= pass_verif_algorithm(carrier, tm, ops, tm_init_speeds[i], tm_max_speeds[i], ops_init_speed, ops_max_speed, [x, y], ball_init_speed, cf= cf)
                 #On calcul la ditance entre le porteur de balle et la position de passe
                 carrier_pass_dist= distance([x, y], carrier)
@@ -804,16 +932,16 @@ if __name__ == "__main__":
     carrier = np.array([0, -5], dtype= float)
     #Position du / des coéquipiers (pour en ajouter, ajoute des lignes de la forme [x, y] dans le tableau)
         #Exemple: tms= np.array([[0, 5], [5, 5]], dtype= float) pour 2 coéquipiers
-    tms= np.array([[-3, 5]], dtype= float)
+    tms= np.array([[-2, 3]], dtype= float)
     #Position du / des adversaires (pour en ajouter, ajoute des lignes de la forme [x, y] dans le tableau)
         #Exemple: ops= np.array([[0, 0], [5, 0]], dtype= float) pour 2 adversaires
-    ops= np.array([[0, -3], [-1, -3]], dtype= float)
-    #ops= np.array([[-1, -3], [-3,-1], [0, -2]], dtype= float)
+    #ops= np.array([[0, -3], [-1, -3]], dtype= float)
+    ops= np.array([[-1, -3], [-3,-1], [0, -2]], dtype= float)
     
     tms_init_speed= np.array([0, 0], dtype= float)
     tms_max_speed= np.array([2.5])
-    ops_init_speed= np.array([1,1], dtype= float)
-    ops_max_speed= np.array([2.5,2.5], dtype= float)
+    ops_init_speed= np.array([1,1,1], dtype= float)
+    ops_max_speed= np.array([3.5, 3.5, 3.5], dtype= float)
 
     fig,ax = plt.subplots(2,1)
     """plot_situation_problem(ax[0], compute_possibles_pass_it, field, carrier, tms, ops, "Passes possibles avec vitesse courrante Teammate= " + str(tms_init_speed) + "m/s et vitesse courrante Opponent= " + str(ops_init_speed) + "m/s\n Vitesse maximale Teammates= " + str(tms_max_speed) + "m/s et vitesse maximale Opponents= " + str(ops_max_speed) + "m/s\n Version ITERATIVE",
@@ -821,8 +949,8 @@ if __name__ == "__main__":
     plot_situation_problem(ax[0], compute_possibles_pass_a, field, carrier, tms, ops, "Passes possibles avec vitesse courrante Teammate= " + str(tms_init_speed) + "m/s et vitesse courrante Opponent= " + str(ops_init_speed) + "m/s\n Vitesse maximale Teammates= " + str(tms_max_speed) + "m/s et vitesse maximale Opponents= " + str(ops_max_speed) + "m/s\n Version ANALYTIQUE",
                             tms_init_speed, tms_max_speed, ops_init_speed, ops_max_speed)
     pass_zone_validator(ax[1], is_pass_possible_a, field, carrier, tms, ops, "Validation des zones de passes possibles\n vitesse courrante Teammate= " + str(tms_init_speed) + "m/s et vitesse courrante Opponent= " + str(ops_init_speed) + "m/s\n Vitesse maximale Teammates= " + str(tms_max_speed) + "m/s et vitesse maximale Opponents= " + str(ops_max_speed) + "m/s",
-                                0.5, 0.3, tms_init_speed, tms_max_speed, ops_init_speed, ops_max_speed)
-    """plot_situation_problem(ax[1], compute_possibles_pass_opti, field, carrier, tms, ops, "VERSION ANALYTIQUE Avec positions de blocages de l'Adversaire\n vitesse courrante Teammate= " + str(tms_init_speed) + "m/s et vitesse courrante Opponent= " + str(ops_init_speed) + "m/s\n Vitesse maximale Teammates= " + str(tms_max_speed) + "m/s et vitesse maximale Opponents= " + str(ops_max_speed) + "m/s",
+                                0.25, 0.3, tms_init_speed, tms_max_speed, ops_init_speed, ops_max_speed)
+    """plot_situation_problem(ax[1], compute_possibles_pass_block, field, carrier, tms, ops, "VERSION ANALYTIQUE Avec positions de blocages de l'Adversaire\n vitesse courrante Teammate= " + str(tms_init_speed) + "m/s et vitesse courrante Opponent= " + str(ops_init_speed) + "m/s\n Vitesse maximale Teammates= " + str(tms_max_speed) + "m/s et vitesse maximale Opponents= " + str(ops_max_speed) + "m/s",
                             tms_init_speed, tms_max_speed, ops_init_speed, ops_max_speed)"""
     
     plt.subplots_adjust(left=0.125, bottom=0.1, right=0.9, top=0.9, wspace=0.2, hspace=0.55)
