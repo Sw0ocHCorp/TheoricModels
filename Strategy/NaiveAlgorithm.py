@@ -654,7 +654,7 @@ def compute_possibles_pass_occult(carrier_pos, tm_pos, ops_pos, tm_init_speed, t
                 n_phases= [2,2]
                 if real_intercept is not None and real_intercept not in pass_pos:
                     pass_pos.append(real_intercept)
-                elif tm not in pass_pos:
+                elif len(pass_pos) == 0 or tm not in np.array(pass_pos):
                     pass_pos.append(deepcopy(tm.tolist()))
         # --> PASSE EN MOUVEMENT <--
         theta_tm= [math.degrees(utils.modulo_2Pi(math.radians(theta))) for theta in range(int(math.degrees(theta_tm_direct - math.pi / 2)), int(math.degrees(theta_tm_direct + math.pi/2)), int(math.degrees(math.pi/pass_lines)))]
@@ -827,12 +827,12 @@ if __name__ == "__main__":
                         [-FIELD_WIDTH/2, FIELD_HEIGHT/2], 
                         [-FIELD_WIDTH/2, -FIELD_HEIGHT/2]], dtype= float)
     carrier = np.array([0, -5], dtype= float)
-    tms= np.array([[-3, 5]], dtype= float)
-    ops= np.array([[0, -3], [-2, -3]], dtype= float)
-    tms_init_speed= np.array([0], dtype= float)
-    tms_max_speed= np.array([2.5])
-    ops_init_speed= np.array([0,0], dtype= float)
-    ops_max_speed= np.array([2.5,2.5], dtype= float)
+    tms= np.array([[-4, 0], [-3, 6], [3, -2], [10, 0]], dtype= float)
+    ops= np.array([[-2, -5], [2, -5], [0, -3], [-7, 0], [-10, 0]], dtype= float)
+    tms_init_speed= np.array([0, 0, 0, 0], dtype= float)
+    tms_max_speed= np.array([2.5, 2.5, 2.5, 1])
+    ops_init_speed= np.array([0, 0, 0, 0, 0], dtype= float)
+    ops_max_speed= np.array([2.5, 2.5, 2.5, 2.5, 1], dtype= float)
 
     fig,ax = plt.subplots(2,1)
     """plot_situation_problem(ax[0], compute_possibles_pass_it, field, carrier, tms, ops, "Passes possibles avec vitesse courrante Teammate= " + str(tms_init_speed) + "m/s et vitesse courrante Opponent= " + str(ops_init_speed) + "m/s\n Vitesse maximale Teammates= " + str(tms_max_speed) + "m/s et vitesse maximale Opponents= " + str(ops_max_speed) + "m/s\n Version ITERATIVE",

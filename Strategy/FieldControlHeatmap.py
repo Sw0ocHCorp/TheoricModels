@@ -154,13 +154,20 @@ if __name__ == "__main__":
                         [-utils.FIELD_WIDTH/2, utils.FIELD_HEIGHT/2], 
                         [-utils.FIELD_WIDTH/2, -utils.FIELD_HEIGHT/2]], dtype= float)
     granul= 0.1
-    carrier = np.array([0, -5], dtype= float)
-    tms= np.array([[-3, 5]], dtype= float)
-    ops= np.array([[0, -3], [-2, -3]], dtype= float)
+    carrier= np.array([0, -5], dtype= float)
+    tms= np.array([[0, 5]], dtype= float)
+    ops= np.array([[0, 0]], dtype= float)
     tms_init_speed= np.array([0], dtype= float)
     tms_max_speed= np.array([2.5])
-    ops_init_speed= np.array([0,0], dtype= float)
-    ops_max_speed= np.array([2.5,2.5], dtype= float)
+    ops_init_speed= np.array([0], dtype= float)
+    ops_max_speed= np.array([2.5], dtype= float)
+    """carrier = np.array([0, -5], dtype= float)
+    tms= np.array([[-4, 0], [-3, 6], [3, -2], [10, 0]], dtype= float)
+    ops= np.array([[-2, -5], [2, -5], [0, -3], [-7, 0], [-10, 0]], dtype= float)
+    tms_init_speed= np.array([0, 0, 0, 0], dtype= float)
+    tms_max_speed= np.array([2.5, 2.5, 2.5, 1])
+    ops_init_speed= np.array([0, 0, 0, 0, 0], dtype= float)
+    ops_max_speed= np.array([2.5, 2.5, 2.5, 2.5, 1], dtype= float)"""
     figure= plt.figure()
     (fig1, fig2)= figure.subfigures(2,1)
     ax= fig1.subplots(1,1)
@@ -173,6 +180,7 @@ if __name__ == "__main__":
     ax.scatter([carrier[0]], [carrier[1]], marker='o', color= "black", label= "Carrier")
     ax.scatter(tms[:,0], tms[:,1], marker= "o", color= "purple", label= "Teammates")
     ax.scatter(ops[:,0], ops[:,1], marker= "o", color= "orange", label= "Opponents")
+    ax.set_title("Passes possibles avec vitesse courrante Teammate= " + str(tms_init_speed) + "m/s et vitesse courrante Opponent= " + str(ops_init_speed) + "m/s\n Vitesse maximale Teammates= " + str(tms_max_speed) + "m/s et vitesse maximale Opponents= " + str(ops_max_speed) + "m/s\n Version ANALYTIQUE")
     ax.legend()
     print("> Teammates Time Map")
     tm_map= compute_control_map(tms, tms_init_speed, tms_max_speed, field, ax= ax2[0,0], x_step= granul, y_step= granul)
@@ -201,5 +209,5 @@ if __name__ == "__main__":
                                                     tms_init_speed, tms_max_speed,
                                                     ops_init_speed, ops_max_speed, ax= ax2[1,2])
     ax2[1,2].set_title("Heatmap Zone Pass Availables")"""
-    plt.subplots_adjust(left=0.125, bottom=0.1, right=0.9, top=0.9, wspace=0.2, hspace=0.55)
+    plt.subplots_adjust(left=0.125, bottom=0.1, right=0.9, top=0.9, wspace=0.2, hspace=0.45)
     plt.show()
