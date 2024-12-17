@@ -154,20 +154,20 @@ if __name__ == "__main__":
                         [-utils.FIELD_WIDTH/2, utils.FIELD_HEIGHT/2], 
                         [-utils.FIELD_WIDTH/2, -utils.FIELD_HEIGHT/2]], dtype= float)
     granul= 0.1
-    carrier= np.array([0, -5], dtype= float)
+    """carrier= np.array([0, -5], dtype= float)
     tms= np.array([[0, 5]], dtype= float)
     ops= np.array([[0, 0]], dtype= float)
     tms_init_speed= np.array([0], dtype= float)
     tms_max_speed= np.array([2.5])
     ops_init_speed= np.array([0], dtype= float)
-    ops_max_speed= np.array([2.5], dtype= float)
-    """carrier = np.array([0, -5], dtype= float)
+    ops_max_speed= np.array([2.5], dtype= float)"""
+    carrier = np.array([0, -5], dtype= float)
     tms= np.array([[-4, 0], [-3, 6], [3, -2], [10, 0]], dtype= float)
     ops= np.array([[-2, -5], [2, -5], [0, -3], [-7, 0], [-10, 0]], dtype= float)
     tms_init_speed= np.array([0, 0, 0, 0], dtype= float)
     tms_max_speed= np.array([2.5, 2.5, 2.5, 1])
     ops_init_speed= np.array([0, 0, 0, 0, 0], dtype= float)
-    ops_max_speed= np.array([2.5, 2.5, 2.5, 2.5, 1], dtype= float)"""
+    ops_max_speed= np.array([2.5, 2.5, 2.5, 2.5, 1], dtype= float)
     figure= plt.figure()
     (fig1, fig2)= figure.subfigures(2,1)
     ax= fig1.subplots(1,1)
