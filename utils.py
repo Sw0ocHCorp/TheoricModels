@@ -5,6 +5,8 @@ import math
 from copy import deepcopy
 from time import perf_counter
 
+TEAMMATES_PRIORITY= 0.0
+OPPONENTS_PRIORITY= 1.0
 GRAVITY= 9.81
 FIELD_WIDTH= 22
 FIELD_HEIGHT= 14
@@ -46,7 +48,10 @@ def time_ball_reach_pos(init_speed, start_pos, finish_pos, cf):
         #dist(t_stop) = (V0**2)/deccel - (1/2)*((V0**2)/deccel) = (V0**2)/deccel + (((-1/2)*(V0**2)) / deccel)
         #dist(t_stop) = (V0**2) / (2*deccel)
     dist_to_stop= (init_speed**2) / (2*deccel)
-    if move_dist > dist_to_stop:
+    #SI la distance entre les 2 points demandés est supérieure à la distance de stop de balle
+        #Utilisation d'une marge pour éviter les erreur dues aux approximations de calcul
+    #Le temps pour atteindre finish_pos est infini. finish_pos est inatteignable 
+    if move_dist > dist_to_stop+ 1e-10:
         return math.inf
     #SI la position est atteignable
     #On va résoudre l'équation: move_dist = init_speed * t - 0.5 * deccel * t^2 
