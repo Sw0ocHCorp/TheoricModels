@@ -200,45 +200,48 @@ def compute_pass_map(control_map, tm_map, ops_map, tm_intercept_map, ops_interce
     return pass_map
 
 #MAP des zones de shoot possibles pour l'équipe porteuse de balle
-def compute_shoot_map(pass_map, carrier, ops, ops_current_speeds, ops_max_speeds, x, y, shooting_speed= None, cf= 0.3, ax= None):
+def compute_shoot_map(pass_map, carrier, ops, ops_current_speeds, ops_max_speeds, x, y, shooting_speed= None, n_targets= 5, cf= 0.3, ax= None):
     #TEAMMATES
     #On va travailler dans les zones de passes possibles
     shoot_map= deepcopy(pass_map)
     indexs= np.where(shoot_map < 0.0)
-    targets= [[11, 0],[11, 1], [11, -1], [11, 2], [11, -2]]
+    targets= np.arange(-1, 1 + (2/(n_targets-1)), 2/(n_targets-1))
     for col, row in zip(indexs[0], indexs[1]):
         shoot_map[col, row] = 0
         shoot_pos= [x[col], y[row]]
-        for i, target in enumerate(targets):
+        diff_ball_ops= -1
+        for i, target_y in enumerate(targets):
+            target= [-11, target_y]
             if shooting_speed is None:
-                shooting_speed= utils.compute_ball_v0(abs(utils.distance(shoot_pos, target))*2, cf= cf)
+                shooting_speed= utils.compute_ball_v0(33, cf= cf)
             time_ball= utils.time_ball_reach_pos(shooting_speed, shoot_pos, target, cf= cf)
             time_ops= math.inf
-            for i, op in enumerate(ops):
+            for j, op in enumerate(ops):
                 intercept= utils.find_closest_point_on_segment(op, shoot_pos, target)
-                time_= utils.compute_time_to_position(op, ops_current_speeds[i], ops_max_speeds[i], intercept)
+                time_= utils.compute_time_to_position(op, ops_current_speeds[j], ops_max_speeds[j], intercept)
                 if time_ < time_ops:
                     time_ops= time_
-            if time_ball < time_ops:
-                shoot_map[col, row]= i
-                break
+            if time_ball < time_ops and time_ops - time_ball > diff_ball_ops:
+                diff_ball_ops = time_ops - time_ball 
+                shoot_map[col, row]= i+1
     #CARRIER         
     sorted_x= sorted(x, key= lambda pos: abs(carrier[0] - pos))
     sorted_y= sorted(y, key= lambda pos: abs(carrier[1] - pos))
-    for i, target in enumerate(targets):
+    for i, target_y in enumerate(targets):
+        target= [-11, target_y]
         if shooting_speed is None:
             shooting_speed= utils.compute_ball_v0(abs(utils.distance(carrier, target))*2, cf= cf)
         time_ball= utils.time_ball_reach_pos(shooting_speed, carrier, target, cf= cf)
         time_ops= math.inf
-        for i, op in enumerate(ops):
+        for j, op in enumerate(ops):
             intercept= utils.find_closest_point_on_segment(op, carrier, target)
-            time_= utils.compute_time_to_position(op, ops_current_speeds[i], ops_max_speeds[i], intercept)
+            time_= utils.compute_time_to_position(op, ops_current_speeds[j], ops_max_speeds[j], intercept)
             if time_ < time_ops:
                 time_ops= time_
         if time_ball < time_ops:
             row= np.where(y == sorted_y[0])[0]
             col= np.where(x == sorted_x[0])[0]
-            shoot_map[col, row]= i
+            shoot_map[col, row]= i+1
             break
     if ax is not None:
         im= ax.imshow(shoot_map.T, origin = "lower")
@@ -313,7 +316,7 @@ if __name__ == "__main__":
     pass_map= compute_pass_map(teams_control_map, tm_map, ops_map, tms_intercept_map,ops_intercept_map, priority_map, ax= ax2[1,2], cf= cf)
     ax2[1,2].set_title("Teammates Pass Map")
     #ax2[1,3].set_title("Teammates Pass Map")
-    shooting_map= compute_shoot_map(pass_map, carrier, ops, ops_init_speed, ops_max_speed, x, y, shooting_speed= None, cf= 0.3, ax= ax2[1,3])
+    shooting_map= compute_shoot_map(pass_map, carrier, ops, ops_init_speed, ops_max_speed, x, y, shooting_speed= None, n_targets= 5, cf= 0.3, ax= ax2[1,3])
     ax2[1,3].set_title("Team Shooting Map")
     plt.subplots_adjust(left=0.125, bottom=0.1, right=0.9, top=0.85, wspace=0.3, hspace=0.45)
     plt.show()
