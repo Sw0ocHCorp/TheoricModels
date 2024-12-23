@@ -130,20 +130,19 @@ def compute_intercept_map(robot_map, ball_map, robots_pos,
             pass_speed = utils.compute_ball_v0(abs(utils.distance(carrier, target_pos)))
         theta= math.atan2(target_pos[1] - carrier[1], target_pos[0] - carrier[0])
         stop_time, stop_pos= utils.get_stop_ball(pass_speed, carrier, theta, cf= 0.3)
-        #SI la balle s'arrête à target_pos | On va toujours pouvoir l'intercepter à target_pos
-        if abs(abs(utils.distance(carrier, stop_pos)) - abs(utils.distance(carrier, target_pos))) < granul:
-            map_value= -math.inf
         #SI la balle s'arrête après target_pos | LA PASSE N'EST PAS IMPOSSIBLE
-        elif abs(utils.distance(carrier, stop_pos)) > abs(utils.distance(carrier, target_pos)) + granul:
+        if abs(utils.distance(carrier, stop_pos)) >= abs(utils.distance(carrier, target_pos))- granul:
             robot_intercept_time= math.inf
             robot_time= math.inf
             ball_intercept_time= math.inf
             ball_time= math.inf
+            robot_intercept= None
             #Calcul du temps pour que le robot le plus proche atteigne la position d'interception du segment Porteur de balle - Target Position
             for i, robot in enumerate(robots_pos):
                 closest_pt= utils.find_closest_point_on_segment(robot, carrier, target_pos)
                 time_= utils.compute_time_to_position(robot, robots_current_speeds[i], robots_max_speeds[i], closest_pt)
                 if time_ < robot_intercept_time:
+                    robot_intercept= closest_pt
                     robot_intercept_time= time_
                     robot_time= utils.compute_time_to_position(robot, robots_current_speeds[i], robots_max_speeds[i], target_pos)
                     ball_intercept_time = utils.time_ball_reach_pos(pass_speed, carrier, closest_pt, cf= 0.3)
@@ -151,6 +150,10 @@ def compute_intercept_map(robot_map, ball_map, robots_pos,
             #SI le robot le plus proche peut intercepter la balle avant qu'elle n'atteigne target_pos -> On remplit la case avec la différence temporelle entre robot et balle
             if robot_intercept_time < max(0,ball_intercept_time - time_reduction):
                 map_value= robot_intercept_time - ball_intercept_time 
+            #SINON SI la Team du Robot ne peut pas intercepter le ballon en chemin la balle MAIS elle s'arrête à target_pos | On va toujours pouvoir l'intercepter à target_pos
+                #On marque cet situation comme -math.inf pour rendre l'algo compréhensible (on s'occupera de ce cas dans la construction de la MAP de passe)
+            elif abs(abs(utils.distance(carrier, stop_pos)) - abs(utils.distance(carrier, target_pos))) < granul:
+                map_value= -math.inf
         intercept_map[col, row] = map_value
     if ax is not None:
         im= ax.imshow(intercept_map.T, cmap= 'gray', interpolation= 'nearest', origin = "lower")
@@ -171,7 +174,7 @@ def compute_pass_map(control_map, tm_map, ops_map, tm_intercept_map, ops_interce
         diff_ops= ops_intercept_map[col, row]
         diff_tm= tm_intercept_map[col, row]
         intercept_priority= priority_map[col, row] 
-        #SI la est arrêtée à la position testée | La pase sera interceptée par l'équipe la plus rapide pour atteindre la position testée
+        #SI la team n'a pa pu intercepter la balle en chemin mais que la balle s'est arrêtée à la position testée | La balle sera interceptée par l'équipe la plus rapide pour atteindre la position testée
         if diff_ops == -math.inf:
             diff_ops= min(ops_map[col, row] - tm_map[col, row], 0.0)
         if diff_tm == -math.inf:
@@ -257,7 +260,7 @@ if __name__ == "__main__":
     y= np.arange(-utils.FIELD_HEIGHT/2 + granul/2, (utils.FIELD_HEIGHT + granul)/2 - granul/2, granul)
     x= np.arange(-utils.FIELD_WIDTH/2 + granul/2, (utils.FIELD_WIDTH + granul)/2 - granul/2, granul)
     carrier= np.array([0, -5], dtype= float)
-    tms= np.array([[0, 5], [10,0]], dtype= float)
+    tms= np.array([[0, 3], [10,0]], dtype= float)
     ops= np.array([[0, 0], [-10, 0]], dtype= float)
     tms_init_speed= np.array([0,0], dtype= float)
     tms_max_speed= np.array([2.5, 2.5])
@@ -270,7 +273,7 @@ if __name__ == "__main__":
     tms_max_speed= np.array([2.5, 2.5, 2.5, 1])
     ops_init_speed= np.array([0, 0, 0, 0, 0], dtype= float)
     ops_max_speed= np.array([2.5, 2.5, 2.5, 2.5, 1], dtype= float)"""
-    pass_speed= None
+    pass_speed= 10
     cf= 0.3
     figure= plt.figure()
     (fig1, fig2)= figure.subfigures(2,1)
