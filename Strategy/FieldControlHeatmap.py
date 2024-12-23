@@ -116,47 +116,47 @@ def compute_intercept_map(robot_map, ball_map, robots_pos,
     intercept_map= robot_map - ball_map
     intercept_map[intercept_map == -math.inf] = 0.0
     #Récupération des positions pour lesquelles le robot est plus lent que la balle pour atteindre la position
-    cols, rows= np.where(intercept_map > 0.0)
+    indexs= np.where(intercept_map > 0.0)
     #On va check que le robot ne peut pas intercepter le ballon sur le segment Porteur - Target Position
     #Detection des interceptions en chemin vers target_pos |Interceptions non Triviales
-    for col in set(cols):
-        for row in set(rows):
-            #On considère la passe à target_pos comme impossible de base
-                #On va prouver que la passe est faisable pour changer la valeur de la case
-            map_value= 0.0
-            target_pos= [x[col], y[row]]
-            pass_speed= ball_init_speed
-            #SI on a spécifier une vitesse de passe | Calcul de position d'arrêt de la balle pour vérifier si la balle pourra atteindre target_pos
-            if pass_speed is None:
-                pass_speed = utils.compute_ball_v0(abs(utils.distance(carrier, target_pos)))
-            theta= math.atan2(target_pos[1] - carrier[1], target_pos[0] - carrier[0])
-            stop_time, stop_pos= utils.get_stop_ball(pass_speed, carrier, theta, cf= 0.3)
-            #SI la balle s'arrête à target_pos | On va toujours pouvoir l'intercepter à target_pos
-            if abs(abs(utils.distance(carrier, stop_pos)) - abs(utils.distance(carrier, target_pos))) < granul:
-                map_value= -math.inf
-            #SI la balle s'arrête après target_pos | LA PASSE N'EST PAS IMPOSSIBLE
-            elif abs(utils.distance(carrier, stop_pos)) > abs(utils.distance(carrier, target_pos)) + granul:
-                robot_intercept_time= math.inf
-                robot_time= math.inf
-                ball_intercept_time= math.inf
-                ball_time= math.inf
-                #Calcul du temps pour que le robot le plus proche atteigne la position d'interception du segment Porteur de balle - Target Position
-                for i, robot in enumerate(robots_pos):
-                    closest_pt= utils.find_closest_point_on_segment(robot, carrier, target_pos)
-                    time_= utils.compute_time_to_position(robot, robots_current_speeds[i], robots_max_speeds[i], closest_pt)
-                    if time_ < robot_intercept_time:
-                        robot_intercept_time= time_
-                        robot_time= utils.compute_time_to_position(robot, robots_current_speeds[i], robots_max_speeds[i], target_pos)
-                        ball_intercept_time = utils.time_ball_reach_pos(pass_speed, carrier, closest_pt, cf= 0.3)
-                        ball_time = utils.time_ball_reach_pos(pass_speed, carrier, target_pos, cf= 0.3)
-                #SI le robot le plus proche peut intercepter la balle avant qu'elle n'atteigne target_pos -> On remplit la case avec la différence temporelle entre robot et balle
-                if robot_intercept_time < max(0,ball_intercept_time - time_reduction):
-                    map_value= robot_intercept_time - ball_intercept_time 
-            intercept_map[col, row] = map_value
+    for col, row in zip(indexs[0], indexs[1]):
+        #On considère la passe à target_pos comme impossible de base
+            #On va prouver que la passe est faisable pour changer la valeur de la case
+        map_value= 0.0
+        target_pos= [x[col], y[row]]
+        pass_speed= ball_init_speed
+        #SI on a spécifier une vitesse de passe | Calcul de position d'arrêt de la balle pour vérifier si la balle pourra atteindre target_pos
+        if pass_speed is None:
+            pass_speed = utils.compute_ball_v0(abs(utils.distance(carrier, target_pos)))
+        theta= math.atan2(target_pos[1] - carrier[1], target_pos[0] - carrier[0])
+        stop_time, stop_pos= utils.get_stop_ball(pass_speed, carrier, theta, cf= 0.3)
+        #SI la balle s'arrête à target_pos | On va toujours pouvoir l'intercepter à target_pos
+        if abs(abs(utils.distance(carrier, stop_pos)) - abs(utils.distance(carrier, target_pos))) < granul:
+            map_value= -math.inf
+        #SI la balle s'arrête après target_pos | LA PASSE N'EST PAS IMPOSSIBLE
+        elif abs(utils.distance(carrier, stop_pos)) > abs(utils.distance(carrier, target_pos)) + granul:
+            robot_intercept_time= math.inf
+            robot_time= math.inf
+            ball_intercept_time= math.inf
+            ball_time= math.inf
+            #Calcul du temps pour que le robot le plus proche atteigne la position d'interception du segment Porteur de balle - Target Position
+            for i, robot in enumerate(robots_pos):
+                closest_pt= utils.find_closest_point_on_segment(robot, carrier, target_pos)
+                time_= utils.compute_time_to_position(robot, robots_current_speeds[i], robots_max_speeds[i], closest_pt)
+                if time_ < robot_intercept_time:
+                    robot_intercept_time= time_
+                    robot_time= utils.compute_time_to_position(robot, robots_current_speeds[i], robots_max_speeds[i], target_pos)
+                    ball_intercept_time = utils.time_ball_reach_pos(pass_speed, carrier, closest_pt, cf= 0.3)
+                    ball_time = utils.time_ball_reach_pos(pass_speed, carrier, target_pos, cf= 0.3)
+            #SI le robot le plus proche peut intercepter la balle avant qu'elle n'atteigne target_pos -> On remplit la case avec la différence temporelle entre robot et balle
+            if robot_intercept_time < max(0,ball_intercept_time - time_reduction):
+                map_value= robot_intercept_time - ball_intercept_time 
+        intercept_map[col, row] = map_value
     if ax is not None:
         im= ax.imshow(intercept_map.T, cmap= 'gray', interpolation= 'nearest', origin = "lower")
         plt.colorbar(im, label="Time Difference Robots / Ball", orientation="vertical", ax= ax)
     return intercept_map
+
 
 #CALCUL des zones de passes réelle pour l'équipe porteuse de balle (en attaque)
 def compute_pass_map(control_map, tm_map, ops_map, tm_intercept_map, ops_intercept_map, priority_map, ax= None, cf= 0.3):
@@ -166,34 +166,33 @@ def compute_pass_map(control_map, tm_map, ops_map, tm_intercept_map, ops_interce
     pass_map[pass_map > 0.0]= 0.0
     pass_map[pass_map == -math.inf] = 0.0
     pass_map[pass_map < 0.0]= 1.0
-    cols, rows= np.where(pass_map > 0.0)
-    for col in set(cols):
-        for row in set(rows):
-            diff_ops= ops_intercept_map[col, row]
-            diff_tm= tm_intercept_map[col, row]
-            intercept_priority= priority_map[col, row] 
-            #SI la est arrêtée à la position testée | La pase sera interceptée par l'équipe la plus rapide pour atteindre la position testée
-            if diff_ops == -math.inf:
-                diff_ops= min(ops_map[col, row] - tm_map[col, row], 0.0)
-            if diff_tm == -math.inf:
-                diff_tm= min(tm_map[col, row] - ops_map[col, row], 0.0)
-            #SI Personne ne peut intercepter la balle | PASSE IMPOSSIBLE
-            if diff_tm == 0.0 and diff_ops == 0.0:
-                pass_map[col, row]*= 0.0
-            #SI notre Team est prioritaire et qu'on peut intercepter le ballon
-            #OU Qu'on est pas prioritaire mais qu'on peut intercepter le ballon alors que les adversaires NON | PASSE POSSIBLE
-            elif (intercept_priority == utils.TEAMMATES_PRIORITY and diff_tm < 0.0) or \
+    indexs= np.where(pass_map > 0.0)
+    for col, row in zip(indexs[0], indexs[1]):
+        diff_ops= ops_intercept_map[col, row]
+        diff_tm= tm_intercept_map[col, row]
+        intercept_priority= priority_map[col, row] 
+        #SI la est arrêtée à la position testée | La pase sera interceptée par l'équipe la plus rapide pour atteindre la position testée
+        if diff_ops == -math.inf:
+            diff_ops= min(ops_map[col, row] - tm_map[col, row], 0.0)
+        if diff_tm == -math.inf:
+            diff_tm= min(tm_map[col, row] - ops_map[col, row], 0.0)
+        #SI Personne ne peut intercepter la balle | PASSE IMPOSSIBLE
+        if diff_tm == 0.0 and diff_ops == 0.0:
+            pass_map[col, row]*= 0.0
+        #SI notre Team est prioritaire et qu'on peut intercepter le ballon
+        #OU Qu'on est pas prioritaire mais qu'on peut intercepter le ballon alors que les adversaires NON | PASSE POSSIBLE
+        elif (intercept_priority == utils.TEAMMATES_PRIORITY and diff_tm < 0.0) or \
                 (intercept_priority == utils.OPPONENTS_PRIORITY and diff_tm < 0.0 and diff_ops == 0.0):
-                pass_map[col, row]*= -(abs(diff_tm) - abs(diff_ops))
-            #SINON SI les Adversaires sont prioritaires et peuvent intercepter la balle
-            #OU Que les Adversaires ne sont pas prioritaires mais qu'ils peuvent intercepter le ballon alors que notre Team NON | PASSE IMPOSSIBLE
-            elif (intercept_priority == utils.OPPONENTS_PRIORITY and diff_ops < 0.0) or \
+            pass_map[col, row]*= -(abs(diff_tm) - abs(diff_ops))
+        #SINON SI les Adversaires sont prioritaires et peuvent intercepter la balle
+        #OU Que les Adversaires ne sont pas prioritaires mais qu'ils peuvent intercepter le ballon alors que notre Team NON | PASSE IMPOSSIBLE
+        elif (intercept_priority == utils.OPPONENTS_PRIORITY and diff_ops < 0.0) or \
                 (intercept_priority == utils.TEAMMATES_PRIORITY and diff_ops < 0.0 and diff_tm == 0.0):
-                pass_map[col, row]*= 0.0
-            #VOIR DANS QUEL CAS ON EST DANS LE else
-            #S'IL Y A DES CAS NON ANTICIPES
-            else:
-                pass_map[col, row]*= 0.0
+            pass_map[col, row]*= 0.0
+        #VOIR DANS QUEL CAS ON EST DANS LE else
+        #S'IL Y A DES CAS NON ANTICIPES
+        else:
+            pass_map[col, row]*= 0.0
             
     if ax is not None:
         im= ax.imshow(pass_map.T, cmap= 'gray', interpolation= 'nearest', origin = "lower")
@@ -201,7 +200,53 @@ def compute_pass_map(control_map, tm_map, ops_map, tm_intercept_map, ops_interce
     return pass_map
 
 #MAP des zones de shoot possibles pour l'équipe porteuse de balle
-#def compute_shoot_map(pass_map)
+def compute_shoot_map(pass_map, carrier, ops, ops_current_speeds, ops_max_speeds, x, y, shooting_speed= None, cf= 0.3, ax= None):
+    #TEAMMATES
+    #On va travailler dans les zones de passes possibles
+    shoot_map= deepcopy(pass_map)
+    shoot_map[shoot_map < 0.0]= 1
+    """cols, rows= np.where(shoot_map == 1.0)
+    
+    targets= [[11, 0],[11, 1], [11, -1], [11, 2], [11, -2]]
+    for col in set(cols):
+        for row in set(rows):
+            shoot_map[col, row] = 0
+            shoot_pos= [x[col], y[row]]
+            for i, target in enumerate(targets):
+                if shooting_speed is None:
+                    shooting_speed= utils.compute_ball_v0(abs(utils.distance(shoot_pos, target))*2, cf= cf)
+                time_ball= utils.time_ball_reach_pos(shooting_speed, shoot_pos, target, cf= cf)
+                time_ops= math.inf
+                for i, op in enumerate(ops):
+                    intercept= utils.find_closest_point_on_segment(op, shoot_pos, target)
+                    time_= utils.compute_time_to_position(op, ops_current_speeds[i], ops_max_speeds[i], intercept)
+                    if time_ < time_ops:
+                        time_ops= time_
+                if time_ball < time_ops:
+                    shoot_map[col, row]= i
+                    break
+    #CARRIER         
+    sorted_x= sorted(x, key= lambda pos: abs(carrier[0] - pos))
+    sorted_y= sorted(y, key= lambda pos: abs(carrier[1] - pos))
+    for i, target in enumerate(targets):
+        if shooting_speed is None:
+            shooting_speed= utils.compute_ball_v0(abs(utils.distance(carrier, target))*2, cf= cf)
+        time_ball= utils.time_ball_reach_pos(shooting_speed, carrier, target, cf= cf)
+        time_ops= math.inf
+        for i, op in enumerate(ops):
+            intercept= utils.find_closest_point_on_segment(op, carrier, target)
+            time_= utils.compute_time_to_position(op, ops_current_speeds[i], ops_max_speeds[i], intercept)
+            if time_ < time_ops:
+                time_ops= time_
+        if time_ball < time_ops:
+            row= np.where(y == sorted_y[0])[0]
+            col= np.where(x == sorted_x[0])[0]
+            shoot_map[col, row]= i
+            break"""
+    if ax is not None:
+        im= ax.imshow(shoot_map.T, origin = "lower")
+        plt.colorbar(im, label="Target For Shoot", orientation="vertical", ax= ax)
+    return shoot_map
 
 if __name__ == "__main__":
     field = np.array([[utils.FIELD_WIDTH/2, -utils.FIELD_HEIGHT/2], 
@@ -225,7 +270,7 @@ if __name__ == "__main__":
     tms_max_speed= np.array([2.5, 2.5, 2.5, 1])
     ops_init_speed= np.array([0, 0, 0, 0, 0], dtype= float)
     ops_max_speed= np.array([2.5, 2.5, 2.5, 2.5, 1], dtype= float)"""
-    pass_speed= 6
+    pass_speed= None
     cf= 0.3
     figure= plt.figure()
     (fig1, fig2)= figure.subfigures(2,1)
@@ -271,5 +316,7 @@ if __name__ == "__main__":
     pass_map= compute_pass_map(teams_control_map, tm_map, ops_map, tms_intercept_map,ops_intercept_map, priority_map, ax= ax2[1,2], cf= cf)
     ax2[1,2].set_title("Teammates Pass Map")
     #ax2[1,3].set_title("Teammates Pass Map")
+    """shooting_map= compute_shoot_map(pass_map, carrier, ops, ops_init_speed, ops_max_speed, x, y, shooting_speed= None, cf= 0.3, ax= ax2[1,3])
+    ax2[1,3].set_title("Team Shooting Map")"""
     plt.subplots_adjust(left=0.125, bottom=0.1, right=0.9, top=0.85, wspace=0.3, hspace=0.45)
     plt.show()
