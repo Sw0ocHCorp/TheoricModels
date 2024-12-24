@@ -11,6 +11,15 @@ GRAVITY= 9.81
 FIELD_WIDTH= 22
 FIELD_HEIGHT= 14
 
+#Classe modélisant un Robot
+class Robot:
+    def __init__(self, current_location, current_theta, current_lin_speed, max_lin_speed, max_rot_speed):
+        self.current_location= current_location
+        self.current_theta= current_theta
+        self.current_lin_speed= current_lin_speed
+        self.max_lin_speed= max_lin_speed
+        self.max_rot_speed= max_rot_speed
+
 def distance(pt1, pt2):
      if (pt1 is not None and pt2 is not None):
          return math.sqrt((pt2[0] - pt1[0])**2 + (pt2[1] - pt1[1])**2)
@@ -35,7 +44,7 @@ def compute_ball_dynamics(ball_init_pos, theta, ball_speed, cf= 0.3, dt= 1/50):
 
 # VERSION ANALYTIQUE (Calcul via Equation) | Beacoup plus rapide
 # Balle s'arrête plus proche que la VERSION ITERATIVE
-def time_ball_reach_pos(init_speed, start_pos, finish_pos, cf):
+def time_ball_reach_pos(init_speed, start_pos, finish_pos, carrier_current_theta= None, carrier_rot_speed= None, cf=0.3):
     #VERIFICATION si la position voulue est atteingnable | Que la balle n'a pas le temps de s'arrêter en chemin
     move_dist= abs(distance(start_pos, finish_pos))
     deccel= cf*9.8
@@ -62,13 +71,17 @@ def time_ball_reach_pos(init_speed, start_pos, finish_pos, cf):
     discrim= int(B**2 - 4*A*C)
     if discrim < 0:
         return -math.inf
-    t= math.sqrt(discrim)
+    time_rotation= 0
+    if carrier_rot_speed is not None and carrier_current_theta is not None:
+        target_theta= math.atan2(finish_pos[1] - start_pos[1], finish_pos[0] - start_pos[0])
+        rotation = abs(target_theta - carrier_current_theta)
+        time_rotation = rotation / carrier_rot_speed
     t1= (-B + math.sqrt(discrim)) / (2*A)
     t2= (-B - math.sqrt(discrim)) / (2*A)
     if t1 >= 0 and t2 >= 0:
-        return min(t1, t2) 
+        return min(t1, t2) + time_rotation
     elif t1 <0 and t2 >= 0:
-        return max(t1, t2)
+        return max(t1, t2) + time_rotation
     else:
         return -math.inf
     
@@ -116,17 +129,22 @@ def modulo_2Pi( angleRad):
     angleTemp = (angleRad - math.pi) % (2 * math.pi) + math.pi
     return (angleTemp + math.pi) % (2 * math.pi) - math.pi
 
-def compute_time_to_position(starting_pos, currentSpeed, max_speed, finish_pos):
+def compute_time_to_position(starting_pos, current_speed, max_speed, finish_pos, current_theta= None, rot_speed= None):
     dist= abs(distance(starting_pos, finish_pos))
     #Pour l'instant on considère que l'accélération = vitesse max |en partant à vitesse initiale nulle, on met 1s pour atteindre la vitesse max
     accel= max_speed
-    time_to_max= (max_speed - currentSpeed) / accel
+    time_to_max= (max_speed - current_speed) / accel
     max_speed_dist= 0.5*accel*(time_to_max**2)
+    time_rotation= 0
+    if rot_speed is not None and current_theta is not None:
+        target_theta= math.atan2(finish_pos[1] - starting_pos[1], finish_pos[0] - starting_pos[0])
+        rotation = abs(modulo_2Pi(target_theta - current_theta))
+        time_rotation = rotation / rot_speed
     if max_speed_dist >= dist:
-        return math.sqrt((2*dist)/accel)
+        return math.sqrt((2*dist)/accel) + time_rotation
     else:
-        remainDist= dist - max_speed_dist
-        return time_to_max + (remainDist / max_speed)
+        remain_dist= dist - max_speed_dist
+        return time_to_max + (remain_dist / max_speed) + time_rotation
 
 def limit_to_interval(value, low_limit, high_limit):
     if (value > high_limit):
