@@ -11,6 +11,13 @@ GRAVITY= 9.81
 FIELD_WIDTH= 22
 FIELD_HEIGHT= 14
 
+class WayPoints:
+    def __init__(self, x, y, speed, theta):
+        self.x= x
+        self.y= y
+        self.speed= speed
+        self.theta= theta
+
 #Classe modélisant un Robot
 class Robot:
     def __init__(self, current_location, current_theta, current_lin_speed, max_lin_speed, max_rot_speed):
@@ -19,6 +26,11 @@ class Robot:
         self.current_lin_speed= current_lin_speed
         self.max_lin_speed= max_lin_speed
         self.max_rot_speed= max_rot_speed
+    
+    def update_robot_state(self, target_waypoint: WayPoints):
+        direct_theta= math.atan2(target_waypoint.y - self.current_location[1], target_waypoint.x - self.current_location[0])
+        remain_rotation= modulo_2Pi(self.current_theta - direct_theta)
+
 
 def distance(pt1, pt2):
      if (pt1 is not None and pt2 is not None):
@@ -145,6 +157,11 @@ def compute_time_to_position(starting_pos, current_speed, max_speed, finish_pos,
     else:
         remain_dist= dist - max_speed_dist
         return time_to_max + (remain_dist / max_speed) + time_rotation
+
+#Fonction permettant de calculer le temps et la distance pour atteindre une vitesse donnée (à partir d'une vitesse initiale donnée)
+def compute_time_dist_to_speed(starting_speed, target_speed, accel):
+    time_to_speed= (target_speed - starting_speed) / accel
+    return time_to_speed, 0.5*abs(accel)*(time_to_speed**2)
 
 def limit_to_interval(value, low_limit, high_limit):
     if (value > high_limit):

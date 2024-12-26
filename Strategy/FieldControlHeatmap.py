@@ -267,16 +267,24 @@ if __name__ == "__main__":
     granul= 0.1
     y= np.arange(-utils.FIELD_HEIGHT/2 + granul/2, (utils.FIELD_HEIGHT + granul)/2 - granul/2, granul)
     x= np.arange(-utils.FIELD_WIDTH/2 + granul/2, (utils.FIELD_WIDTH + granul)/2 - granul/2, granul)
-    carrier= utils.Robot([0, -5], math.pi/2, 0, 2.5, 10*math.pi)
+    """carrier= utils.Robot([0, -5], math.pi/2, 0, 2.5, 10*math.pi)
     tms= np.array([utils.Robot([0, 3], -math.pi/2, 0, 2.5, 5*math.pi), utils.Robot([10,0], math.pi, 0, 2.5, 5*math.pi)], dtype= object)
-    ops= np.array([utils.Robot([0, 0], -math.pi/2, 0, 2.5, 10*math.pi), utils.Robot([-10, 0], 0, 0, 2.5, 10*math.pi)], dtype= object)
-    """carrier = np.array([0, -5], dtype= float)
-    tms= np.array([[-4, 0], [-3, 6], [3, -2], [10, 0]], dtype= float)
-    ops= np.array([[-2, -5], [2, -5], [0, -3], [-7, 0], [-10, 0]], dtype= float)
+    ops= np.array([utils.Robot([0, 0], -math.pi/2, 0, 2.5, 10*math.pi), utils.Robot([-10, 0], 0, 0, 2.5, 10*math.pi)], dtype= object)"""
+    carrier= utils.Robot([0, -5], math.pi/2, 0, 2.5, 10*math.pi)
+    tms= np.array([], dtype= object)
+    ops= np.array([], dtype= object)
+    tms_pos= np.array([[-4, 0], [0, 3], [3, -2], [10, 0]], dtype= float)
+    ops_pos= np.array([[-2, -5], [2, -5], [0, -3], [-7, 0], [-10, 0]], dtype= float)
     tms_init_speed= np.array([0, 0, 0, 0], dtype= float)
     tms_max_speed= np.array([2.5, 2.5, 2.5, 1])
     ops_init_speed= np.array([0, 0, 0, 0, 0], dtype= float)
-    ops_max_speed= np.array([2.5, 2.5, 2.5, 2.5, 1], dtype= float)"""
+    ops_max_speed= np.array([2.5, 2.5, 2.5, 2.5, 1], dtype= float)
+    for i, tm_p in enumerate(tms_pos):
+        theta = math.atan2(carrier.current_location[1] - tm_p[1], carrier.current_location[0] - tm_p[0])
+        tms= np.append(tms, utils.Robot(tm_p, theta, tms_init_speed[i], tms_max_speed[i], carrier.max_rot_speed/5))
+    for j, ops_p in enumerate(ops_pos):
+        theta = math.atan2(carrier.current_location[1] - ops_p[1], carrier.current_location[0] - ops_p[0])
+        ops= np.append(ops, utils.Robot(ops_p, theta, ops_init_speed[j], ops_max_speed[j], 2*carrier.max_rot_speed))
     pass_speed= 10
     cf= 0.3
     figure= plt.figure()
@@ -286,22 +294,21 @@ if __name__ == "__main__":
     #fig,ax = plt.subplots(6,1)
     p = Polygon(field, color= (0, 0.7, 0, 0.4))
     ax.add_patch(p)
-    ax.set_xlim([-(utils.FIELD_WIDTH/2) + 0.25,(utils.FIELD_WIDTH/2) + 0.25])
-    ax.set_ylim([-(utils.FIELD_HEIGHT/2) + 0.25, (utils.FIELD_HEIGHT/2) + 0.25])
+    ax.set_xlim([-((utils.FIELD_WIDTH/2) + 0.25),(utils.FIELD_WIDTH/2) + 0.25])
+    ax.set_ylim([-((utils.FIELD_HEIGHT/2) + 0.25), (utils.FIELD_HEIGHT/2) + 0.25])
     ax.scatter([carrier.current_location[0]], [carrier.current_location[1]], marker='o', color= "black", label= "Carrier")
     ax.arrow(x= carrier.current_location[0], y= carrier.current_location[1], dx= 0.5*math.cos(carrier.current_theta), dy= 0.5*math.sin(carrier.current_theta), width= 0.075, facecolor= "black")
     tms_loc= np.array([tm.current_location for tm in tms])
-    ops_loc= np.array([opponent.current_location for opponent in ops])
     ax.scatter(tms_loc[:,0], tms_loc[:,1], marker= "o", color= "purple", label= "Teammates")
     for tm in tms:
         ax.arrow(x= tm.current_location[0], y= tm.current_location[1], dx= 0.5*math.cos(tm.current_theta), dy= 0.5*math.sin(tm.current_theta), width= 0.075, facecolor= "purple")
-    ax.scatter(ops_loc[:,0], ops_loc[:,1], marker= "o", color= "orange", label= "Opponents")
+    ax.scatter(ops_pos[:,0], ops_pos[:,1], marker= "o", color= "orange", label= "Opponents")
     for opponent in ops:
         ax.arrow(x= opponent.current_location[0], y= opponent.current_location[1], dx= 0.5*math.cos(opponent.current_theta), dy= 0.5*math.sin(opponent.current_theta), width= 0.075, facecolor= "orange")
     if pass_speed is not None:
-        ax.set_title("Passes possibles avec vitesse courrante Teammate= " + str([rob.current_lin_speed for rob in tms]) + "m/s et vitesse courrante Opponent= " + str([rob.current_lin_speed for rob in ops]) + "m/s\n Vitesse maximale Teammates= " + str([rob.max_lin_speed for rob in tms]) + "m/s et vitesse maximale Opponents= " + str([rob.max_lin_speed for rob in ops]) + "m/s\n Vitesse Rotation Teammates= " + str([round(rob.max_rot_speed,3) for rob in tms]) + "rad/sec" +" Vitesse Rotation Opponent= " + str([round(rob.max_rot_speed,3) for rob in ops]) + "rad/sec" + "\nVitesse de passes= " + str(pass_speed) + "m/s")
+        ax.set_title("Passes possibles avec vitesse courrante Teammate= " + str([float(rob.current_lin_speed) for rob in tms]) + "m/s et vitesse courrante Opponent= " + str([float(rob.current_lin_speed) for rob in ops]) + "m/s\n Vitesse maximale Teammates= " + str([float(rob.max_lin_speed) for rob in tms]) + "m/s et vitesse maximale Opponents= " + str([float(rob.max_lin_speed) for rob in ops]) + "m/s\n Vitesse Rotation Teammates= " + str([float(round(rob.max_rot_speed,3)) for rob in tms]) + "rad/sec" +" Vitesse Rotation Opponent= " + str([float(round(rob.max_rot_speed,3)) for rob in ops]) + "rad/sec" + "\nVitesse de passes= " + str(pass_speed) + "m/s")
     else:
-        ax.set_title("Passes possibles avec vitesse courrante Teammate= " + str([rob.current_lin_speed for rob in tms]) + "m/s et vitesse courrante Opponent= " + str([rob.current_lin_speed for rob in ops]) + "m/s\n Vitesse maximale Teammates= " + str([rob.max_lin_speed for rob in tms]) + "m/s et vitesse maximale Opponents= " + str([rob.max_lin_speed for rob in ops])+ "m/s\n Vitesse Rotation Teammates= " + str([round(rob.max_rot_speed,3) for rob in tms]) + "rad/sec" +" Vitesse Rotation Opponent= " + str([round(rob.max_rot_speed,3) for rob in ops]) + "rad/sec" + "\nVitesse de passes dynamiques")
+        ax.set_title("Passes possibles avec vitesse courrante Teammate= " + str([float(rob.current_lin_speed) for rob in tms]) + "m/s et vitesse courrante Opponent= " + str([float(rob.current_lin_speed) for rob in ops]) + "m/s\n Vitesse maximale Teammates= " + str([float(rob.max_lin_speed) for rob in tms]) + "m/s et vitesse maximale Opponents= " + str([float(rob.max_lin_speed) for rob in ops])+ "m/s\n Vitesse Rotation Teammates= " + str([float(round(rob.max_rot_speed,3)) for rob in tms]) + "rad/sec" +" Vitesse Rotation Opponent= " + str([float(round(rob.max_rot_speed,3)) for rob in ops]) + "rad/sec" + "\nVitesse de passes dynamiques")
     ax.legend()
     print("> Teammates Time Map")
     tm_map= compute_control_map(tms, x, y, ax= ax2[0,0])
