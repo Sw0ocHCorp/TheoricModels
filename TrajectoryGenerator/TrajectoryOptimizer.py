@@ -84,9 +84,15 @@ def get_side_waypoints(robot, theoric_path, target_waypoint):
     real_dist= 0
     last_pos= path[0]
     path = np.delete(path, 0, 0)
+
     n=1
     while len(path) > 0:
         #Calcul de la vitesse du Robot en fonction de sa phase dans le profil de vitesse
+            #Utilisation de n pour avoir des accélération et décélération plus importantes
+            #i_first_ramp et i_second_ramp sont calculés sur le chemin théorique
+            #Hors, la distance entre les points du chemin théorique et le chemin réel n'est pas la même (car distance entre 2 sides waypoints en fonction de la vitesse)
+            # Si dans la le calcul de la vitesse, on uilise 1 / i_first_ramp ou 1 / i_second_ramp, on va avoir des variation de vitesse plus faibles
+            #Les vitesses seront trop importantes, ce qui va engendrer une grosse dérive entre le chemin théorique et le chemin réel
         if real_dist < dist_starting_ramp:
             speed= min(vmax, real_path[-1].speed + (robot.max_lin_speed * n/i_first_ramp))
         elif real_dist < dist_path - dist_finish_ramp:
