@@ -99,6 +99,8 @@ def get_side_waypoints(robot, theoric_path, target_waypoint):
             speed= vmax
         elif real_dist < dist_path:
             speed= max(target_waypoint.speed, real_path[-1].speed - (robot.max_lin_speed * n/i_first_ramp))
+            if speed == 0.0:
+                break
         #Suppression des positions intermédiaire pour rattrapper le retard avec le vrai tracé
         if theoric_dist <= real_dist:
             n+=1
@@ -131,10 +133,10 @@ if __name__ == "__main__":
                       [-utils.FIELD_WIDTH/2, utils.FIELD_HEIGHT/2], 
                       [-utils.FIELD_WIDTH/2, -utils.FIELD_HEIGHT/2]], dtype=float)
     
-    target_waypoints = np.array([utils.WayPoints(0,0,0,math.pi/2), utils.WayPoints(3, 3, 0.5, math.pi), 
-                                 utils.WayPoints(-3, 3, 1.0, -math.pi/2),
-                                 utils.WayPoints(-3, -3, 1.5, 0), 
-                                 utils.WayPoints(3, -3, 2.0, math.pi/2)])
+    target_waypoints = np.array([utils.WayPoints(0,0,0,math.pi/2), utils.WayPoints(1, 1, 0.0, math.pi), 
+                                 utils.WayPoints(-1, 1, 1.0, -math.pi/2),
+                                 utils.WayPoints(-1, -1, 1.5, 0), 
+                                 utils.WayPoints(1, -1, 2.0, math.pi/2)])
     
     robot = utils.Robot([0, 0], math.pi/2, 0, 2.5, math.pi/10)
     target_locs = np.array([[wp.x, wp.y] for wp in target_waypoints])
@@ -155,10 +157,10 @@ if __name__ == "__main__":
     ax[0].scatter(target_locs[:, 0], target_locs[:, 1], marker="o", color="red", label="Target Waypoints")
     side_waypoints= np.array(get_side_waypoints(robot, np.vstack((x_new, y_new)).T, target_waypoints[1]))
     wp_infos.append([side_waypoints.shape[0]-1, side_waypoints[-1].speed, target_waypoints[1].speed])
-    for i in range(2, len(target_locs)):
+    """for i in range(2, len(target_locs)):
         new_side_waypoints= np.array(get_side_waypoints(robot, np.vstack((x_new, y_new)).T, target_waypoints[i]))
         side_waypoints= np.concat((side_waypoints, new_side_waypoints))
-        wp_infos.append([side_waypoints.shape[0]-1, side_waypoints[-1].speed, target_waypoints[i].speed])
+        wp_infos.append([side_waypoints.shape[0]-1, side_waypoints[-1].speed, target_waypoints[i].speed])"""
     side_waypoints= side_waypoints.tolist()
         #ax.plot([side_waypoints[i].x for i in range(len(side_waypoints))], [side_waypoints[i].y for i in range(len(side_waypoints))])
     ax[0].plot([side_waypoints[i].x for i in range(len(side_waypoints))], [side_waypoints[i].y for i in range(len(side_waypoints))], label="Real Path")
