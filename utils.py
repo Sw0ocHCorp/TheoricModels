@@ -160,8 +160,9 @@ def compute_time_to_position(starting_pos, current_speed, max_speed, finish_pos,
 
 #Fonction permettant de calculer le temps et la distance pour atteindre une vitesse donnée (à partir d'une vitesse initiale donnée)
 def compute_time_dist_to_speed(starting_speed, target_speed, accel):
-    time_to_speed= (target_speed - starting_speed) / accel
-    return time_to_speed, 0.5*abs(accel)*(time_to_speed**2)
+    time_to_speed = (target_speed - starting_speed) / accel
+    distance = starting_speed * time_to_speed + 0.5 * accel * (time_to_speed ** 2)
+    return time_to_speed, distance
 
 def limit_to_interval(value, low_limit, high_limit):
     if (value > high_limit):
